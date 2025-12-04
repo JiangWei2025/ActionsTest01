@@ -2,6 +2,7 @@
 
 # 初回 clone のチェック (HEAD が初回 checkout の場合)
 # Git は clone 時に "HEAD" → "refs/heads/main" の切替が最初の post-checkout として実行される
+echo "Hello"
 if [ "$3" = "1" ]; then
   echo "初回 clone を検出しました。"
 
@@ -12,3 +13,4 @@ if [ "$3" = "1" ]; then
   fi
 
 fi
+
