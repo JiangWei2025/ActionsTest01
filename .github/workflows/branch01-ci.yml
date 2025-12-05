@@ -1,0 +1,60 @@
+# ワークフロー名
+name: Branch01 CI/CD Workflow
+
+# トリガー設定：branch01へのpush時に実行
+on:
+  push:
+    branches:
+      - branch01
+
+jobs:
+  build-and-test:
+    # Ubuntu最新版で実行
+    runs-on: ubuntu-latest
+    
+    steps:
+      # branch01のコードをチェックアウト
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # チェックアウトするブランチを指定
+          ref: branch01
+          # 最新のコミットのみ取得（浅いクローン）
+          fetch-depth: 1
+      
+      # ファイルの整合性チェック
+      - name: Check file integrity
+        run: bash scripts/check_integrity.sh
+      
+      # Python環境のセットアップ
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Pythonバージョン（最新の3.x系）
+          python-version: '3.x'
+      
+      # テストの実行
+      - name: Run tests
+        run: |
+          python tests/test_main.py
+      
+      # プルリクエストの作成
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          # GitHubトークン（自動的に提供される）
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # コミットメッセージ
+          commit-message: 'Auto-generated changes from branch01'
+          # PRのタイトル
+          title: 'Auto PR from branch01'
+          # PRの説明
+          body: |
+            This is an automated pull request created from branch01.
+            
+            - ✅ File integrity checks passed
+            - ✅ Tests executed successfully
+          # 新しく作成するブランチ名（実行番号付き）
+          branch: branch01-pr-${{ github.run_number }}
+          # マージ先のブランチ
+          base: main
