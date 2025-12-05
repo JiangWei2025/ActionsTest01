@@ -7,6 +7,11 @@ on:
     branches:
       - branch01
 
+# 権限設定：PRの作成に必要な権限を付与
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build-and-test:
     # Ubuntu最新版で実行
@@ -40,21 +45,27 @@ jobs:
       
       # プルリクエストの作成
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          # GitHubトークン（自動的に提供される）
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # コミットメッセージ
-          commit-message: 'Auto-generated changes from branch01'
-          # PRのタイトル
-          title: 'Auto PR from branch01'
-          # PRの説明
-          body: |
-            This is an automated pull request created from branch01.
-            
+        env:
+          # GitHub CLIで使用するトークン（PAT_TOKENが設定されていない場合はGITHUB_TOKENを使用）
+          # 注意：リポジトリ設定で「Allow GitHub Actions to create and approve pull requests」を有効にする必要があります
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 既存のPRをチェック branch01からmainへのPR
+          existing_pr=$(gh pr list --head branch01 --base main --json number --jq '.[0].number')
+          
+          # PRが存在しない場合のみ作成
+          if [ -z "$existing_pr" ]; then
+            # 新しいPRを作成
+            gh pr create \
+              --title "Auto PR from branch01" \
+              --body "This is an automated pull request created from branch01.
+
             - ✅ File integrity checks passed
-            - ✅ Tests executed successfully
-          # 新しく作成するブランチ名（実行番号付き）
-          branch: branch01-pr-${{ github.run_number }}
-          # マージ先のブランチ
-          base: main
+            - ✅ Tests executed successfully" \
+              --base main \
+              --head branch01
+            echo "PR created successfully"
+          else
+            # 既にPRが存在する場合はスキップ
+            echo "PR already exists: #$existing_pr"
+          fi
