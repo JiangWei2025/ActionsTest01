@@ -46,7 +46,8 @@ jobs:
       # プルリクエストの作成
       - name: Create Pull Request
         env:
-          # GitHub CLIで使用するトークン
+          # GitHub CLIで使用するトークン（PAT_TOKENが設定されていない場合はGITHUB_TOKENを使用）
+          # 注意：リポジトリ設定で「Allow GitHub Actions to create and approve pull requests」を有効にする必要があります
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # 既存のPRをチェック branch01からmainへのPR
