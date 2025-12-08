@@ -43,7 +43,7 @@ jobs:
         run: |
           python tests/test_main.py
 
-      # 
+      # 権限追加
       - name: Authenticate gh
         run: echo "${{ secrets.PAT_TOKEN }}" | gh auth login --with-token
       
@@ -73,5 +73,6 @@ jobs:
             # 既にPRが存在する場合はスキップ
             echo "PR already exists: #$existing_pr"
           fi
+
 
 
