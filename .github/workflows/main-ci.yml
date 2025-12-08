@@ -1,0 +1,111 @@
+# ワークフロー名
+name: Main Branch Production Deployment
+
+# トリガー設定：mainブランチへのPRがマージされた時に実行
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+# 権限設定
+permissions:
+  contents: read
+
+jobs:
+  deploy-to-production:
+    # PRがマージされた場合のみ実行
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+      # mainブランチのコードをチェックアウト
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      
+      # R環境のセットアップ
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          # Rのバージョン指定
+          r-version: 'release'
+      
+      # 本番用Rプロジェクトフォルダの作成と配信
+      - name: Create production R project structure
+        run: |
+          echo "Creating production R project folder..."
+          
+          # 本番用プロジェクトフォルダの作成
+          PROD_DIR="production_deployment_$(date +%Y%m%d_%H%M%S)"
+          mkdir -p "$PROD_DIR"
+          
+          # Rスクリプトのコピー
+          echo "Copying R scripts..."
+          find . -name "*.R" -not -path "./.*" -exec cp --parents {} "$PROD_DIR/" \;
+          
+          # .Rprofileのコピー（存在する場合）
+          if [ -f ".Rprofile" ]; then
+            echo "Copying .Rprofile..."
+            cp .Rprofile "$PROD_DIR/"
+          fi
+          
+          # renv.lockのコピー（存在する場合）
+          if [ -f "renv.lock" ]; then
+            echo "Copying renv.lock..."
+            cp renv.lock "$PROD_DIR/"
+          fi
+          
+          # その他の重要なファイルのコピー
+          if [ -f "DESCRIPTION" ]; then
+            cp DESCRIPTION "$PROD_DIR/"
+          fi
+          if [ -f "NAMESPACE" ]; then
+            cp NAMESPACE "$PROD_DIR/"
+          fi
+          
+          echo "Production folder created: $PROD_DIR"
+          ls -la "$PROD_DIR"
+      
+      # 当局提出用の成果物作成
+      - name: Create deliverable package
+        run: |
+          echo "Creating deliverable package for submission..."
+          
+          # 成果物用のディレクトリ作成
+          DELIVERABLE_DIR="deliverable_$(date +%Y%m%d_%H%M%S)"
+          mkdir -p "$DELIVERABLE_DIR"
+          
+          # 全ソースファイルのコピー
+          echo "Copying all source files..."
+          rsync -av --exclude='.git' --exclude='.github' --exclude='production_*' --exclude='deliverable_*' . "$DELIVERABLE_DIR/"
+          
+          # ZIPアーカイブの作成
+          zip -r "${DELIVERABLE_DIR}.zip" "$DELIVERABLE_DIR"
+          
+          echo "Deliverable package created: ${DELIVERABLE_DIR}.zip"
+          ls -lh "${DELIVERABLE_DIR}.zip"
+      
+      # 成果物のアップロード
+      - name: Upload production artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          # アーティファクト名
+          name: production-deployment-${{ github.run_number }}
+          # アップロードするファイル
+          path: |
+            production_deployment_*/
+            deliverable_*.zip
+          # 保持期間（日数）
+          retention-days: 90
+      
+      # デプロイメント完了通知
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "📦 Production artifacts have been created and uploaded."
+          echo "🔖 Run number: ${{ github.run_number }}"
+          echo "📝 PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
