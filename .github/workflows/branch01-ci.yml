@@ -48,7 +48,7 @@ jobs:
         env:
           # GitHub CLIで使用するトークン（PAT_TOKENが設定されていない場合はGITHUB_TOKENを使用）
           # 注意：リポジトリ設定で「Allow GitHub Actions to create and approve pull requests」を有効にする必要があります
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           # 既存のPRをチェック branch01からmainへのPR
           existing_pr=$(gh pr list --head branch01 --base main --json number --jq '.[0].number')
@@ -69,3 +69,4 @@ jobs:
             # 既にPRが存在する場合はスキップ
             echo "PR already exists: #$existing_pr"
           fi
+
